@@ -1,27 +1,37 @@
-package services
+package service
 
 import (
-	"Users/francisco.zamudio/projects/academy-go-q12021/models"
-	"Users/francisco.zamudio/projects/academy-go-q12021/repository"
+	"Users/francisco.zamudio/projects/academy-go-q12021/model"
 	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 )
 
-//PokemonInteractor Struct used to have access to the different use case functions.
-type PokemonInteractor struct {
-	Repository            repository.InterfaceRepository
-	ExternalapiRepository repository.InterfaceExternalAPIRepository
+//Service use to have access to the different use case functions.
+type Service struct {
+	repository Repository
+}
+
+//Repository Interface
+type Repository interface {
+	GetAllPokemonData() ([][]string, error)
+	SavePokemon([]string) error
+	GetExternalAPI(id string) (model.Pokemon, error)
+}
+
+//New Create a instance of a Service
+func New(s Repository) *Service {
+	return &Service{s}
 }
 
 //GetPokemonByID given an id a pokemon is return
-func (p PokemonInteractor) GetPokemonByID(id string) (models.Pokemon, error) {
+func (s Service) GetPokemonByID(id string) (model.Pokemon, error) {
 
-	pokemons := []models.Pokemon{}
-	var pokemon models.Pokemon
+	pokemons := []model.Pokemon{}
+	var pokemon model.Pokemon
 
-	records, err := p.Repository.GetAllPokemonData()
+	records, err := s.repository.GetAllPokemonData()
 	if err != nil {
 		err := errors.New("Problem retrieving data from the csv" + err.Error())
 		return pokemon, err
@@ -37,7 +47,7 @@ func (p PokemonInteractor) GetPokemonByID(id string) (models.Pokemon, error) {
 			err := errors.New("Problem casting id" + err.Error())
 			return pokemon, err
 		}
-		data := models.Pokemon{ID: id, Name: record[1]}
+		data := model.Pokemon{ID: id, Name: record[1]}
 		pokemons = append(pokemons, data)
 	}
 
@@ -55,11 +65,11 @@ func (p PokemonInteractor) GetPokemonByID(id string) (models.Pokemon, error) {
 }
 
 //ExternalPokemon given an id call an external API, then save and send its response
-func (p PokemonInteractor) ExternalPokemon(id string) (models.Pokemon, error) {
+func (s Service) ExternalPokemon(id string) (model.Pokemon, error) {
 
-	var pokemon models.Pokemon
+	var pokemon model.Pokemon
 
-	pokemon, err := p.ExternalapiRepository.GetExternalAPI(id)
+	pokemon, err := s.repository.GetExternalAPI(id)
 	if err != nil {
 		err := errors.New("The HTTP request failed with error" + err.Error())
 		return pokemon, err
@@ -67,7 +77,7 @@ func (p PokemonInteractor) ExternalPokemon(id string) (models.Pokemon, error) {
 
 	pokemonSlice := strucToSlice(pokemon)
 
-	err = p.Repository.SavePokemon(pokemonSlice)
+	err = s.repository.SavePokemon(pokemonSlice)
 	if err != nil {
 		err := errors.New("Problem saving data to the csv: " + err.Error())
 		return pokemon, err
@@ -76,7 +86,7 @@ func (p PokemonInteractor) ExternalPokemon(id string) (models.Pokemon, error) {
 	return pokemon, nil
 }
 
-func strucToSlice(pokemonStruct models.Pokemon) []string {
+func strucToSlice(pokemonStruct model.Pokemon) []string {
 	v := reflect.ValueOf(pokemonStruct)
 	values := make([]interface{}, v.NumField())
 	for i := 0; i < v.NumField(); i++ {

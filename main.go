@@ -1,18 +1,18 @@
 package main
 
 import (
+	"Users/francisco.zamudio/projects/academy-go-q12021/controller"
+	"Users/francisco.zamudio/projects/academy-go-q12021/repository"
+	"Users/francisco.zamudio/projects/academy-go-q12021/router"
+	"Users/francisco.zamudio/projects/academy-go-q12021/service"
 	"log"
 	"net/http"
-
-	"Users/francisco.zamudio/projects/academy-go-q12021/controllers"
-
-	"github.com/gorilla/mux"
 )
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/pokemon/{id}", controllers.HandlerGetPokemonByID).Methods("GET", "OPTIONS")
-	r.HandleFunc("/api/external/pokemon/{id}", controllers.HandlerGetExternalPokemonByID).Methods("GET", "OPTIONS")
-	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	pokemonRepository := repository.New()
+	pokemonservice := service.New(pokemonRepository)
+	pokemonController := controller.New(pokemonservice)
+	router := router.New(pokemonController)
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
