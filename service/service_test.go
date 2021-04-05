@@ -1,10 +1,11 @@
 package service
 
 import (
-	"Users/francisco.zamudio/projects/academy-go-q12021/model"
 	"errors"
 	"fmt"
 	"testing"
+
+	"Users/francisco.zamudio/projects/academy-go-q12021/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -127,6 +128,104 @@ func TestExternalPokemon(t *testing.T) {
 			assert.NotNil(test.err)
 		} else {
 			assert.Equal(test.expected, pokemon)
+		}
+	}
+}
+
+func TestConcurrentPokemonList(t *testing.T) {
+	tests := []struct {
+		name                   string
+		getAllPokemonDataValue [][]string
+		typeinput              string
+		itemsinput             string
+		itemsperworkerinput    string
+		expected               int
+		err                    error
+	}{
+		{
+			name: "happy path: Get list of pokemon of items size.",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}, {"1", "bulbasaur"}, {"2", "ivysaur"}, {"3", "venusaur"}, {"4", "bulbasaur"}, {"5", "ivysaur"}, {"6", "venusaur"},
+				{"7", "bulbasaur"}, {"8", "ivysaur"}, {"9", "venusaur"}, {"10", "bulbasaur"}, {"11", "ivysaur"}, {"12", "venusaur"}, {"13", "bulbasaur"}, {"14", "ivysaur"}, {"15", "venusaur"},
+				{"16", "ivysaur"}, {"17", "venusaur"}, {"18", "bulbasaur"}, {"19", "ivysaur"}, {"20", "venusaur"}},
+			typeinput:           "odd",
+			itemsinput:          "5",
+			itemsperworkerinput: "5",
+			expected:            5,
+			err:                 nil,
+		},
+		{
+			name: "happy path: The channel response has less posible values (EOF) then wanted items response",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}, {"1", "bulbasaur"}, {"2", "ivysaur"}, {"3", "venusaur"}, {"4", "bulbasaur"}, {"5", "ivysaur"}, {"6", "venusaur"},
+				{"7", "bulbasaur"}, {"8", "ivysaur"}, {"9", "venusaur"}, {"10", "bulbasaur"}, {"11", "ivysaur"}, {"12", "venusaur"}, {"13", "bulbasaur"}, {"14", "ivysaur"}, {"15", "venusaur"},
+				{"16", "ivysaur"}, {"17", "venusaur"}, {"18", "bulbasaur"}, {"19", "ivysaur"}, {"20", "venusaur"}},
+			typeinput:           "odd",
+			itemsinput:          "11",
+			itemsperworkerinput: "9",
+			expected:            10,
+			err:                 nil,
+		},
+		{
+			name: "error path: Problem casting items.",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}, {"1", "bulbasaur"}, {"2", "ivysaur"}, {"3", "venusaur"}, {"4", "bulbasaur"}, {"5", "ivysaur"}, {"6", "venusaur"},
+				{"7", "bulbasaur"}, {"8", "ivysaur"}, {"9", "venusaur"}, {"10", "bulbasaur"}, {"11", "ivysaur"}, {"12", "venusaur"}, {"13", "bulbasaur"}, {"14", "ivysaur"}, {"15", "venusaur"},
+				{"16", "ivysaur"}, {"17", "venusaur"}, {"18", "bulbasaur"}, {"19", "ivysaur"}, {"20", "venusaur"}},
+			typeinput:           "odd",
+			itemsinput:          "10.5",
+			itemsperworkerinput: "15",
+			expected:            10,
+			err:                 errors.New("Problem casting items"),
+		},
+		{
+			name: "error path: Problem casting items per worker.",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}, {"1", "bulbasaur"}, {"2", "ivysaur"}, {"3", "venusaur"}, {"4", "bulbasaur"}, {"5", "ivysaur"}, {"6", "venusaur"},
+				{"7", "bulbasaur"}, {"8", "ivysaur"}, {"9", "venusaur"}, {"10", "bulbasaur"}, {"11", "ivysaur"}, {"12", "venusaur"}, {"13", "bulbasaur"}, {"14", "ivysaur"}, {"15", "venusaur"},
+				{"16", "ivysaur"}, {"17", "venusaur"}, {"18", "bulbasaur"}, {"19", "ivysaur"}, {"20", "venusaur"}},
+			typeinput:           "odd",
+			itemsinput:          "10",
+			itemsperworkerinput: "15.5",
+			expected:            10,
+			err:                 errors.New("Problem casting items per worker"),
+		},
+		{
+			name:                   "error path: The csv file is empty:",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}},
+			typeinput:              "odd",
+			itemsinput:             "5",
+			itemsperworkerinput:    "5",
+			expected:               5,
+			err:                    errors.New("The csv is empty"),
+		},
+		{
+			name:                   "error path: The csv file is empty:",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}},
+			typeinput:              "odd",
+			itemsinput:             "5",
+			itemsperworkerinput:    "5",
+			expected:               5,
+			err:                    errors.New("The csv is empty"),
+		},
+		{
+			name:                   "error path: Problem casting id:",
+			getAllPokemonDataValue: [][]string{{"ID", "Name"}, {"1.3", "bulbasaur"}, {"2", "ivysaur"}, {"3", "venusaur"}},
+			typeinput:              "odd",
+			itemsinput:             "5",
+			itemsperworkerinput:    "5",
+			expected:               5,
+			err:                    errors.New("Problem casting id"),
+		},
+	}
+
+	assert := assert.New(t)
+	for _, test := range tests {
+		fmt.Println(test.name)
+		dataRepository := new(MockedRepository)
+		dataRepository.On("GetAllPokemonData").Return(test.getAllPokemonDataValue, nil)
+		pokemonservice := New(dataRepository)
+		pokemonList, err := pokemonservice.ConcurrentPokemonList(test.typeinput, test.itemsinput, test.itemsperworkerinput)
+		if err != nil {
+			assert.NotNil(test.err)
+		} else {
+			assert.Equal(test.expected, len(pokemonList))
 		}
 	}
 }

@@ -1,12 +1,13 @@
 package repository
 
 import (
-	"Users/francisco.zamudio/projects/academy-go-q12021/model"
 	"encoding/csv"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"Users/francisco.zamudio/projects/academy-go-q12021/model"
 )
 
 //Repository Struct that has all needed functions to interact with the

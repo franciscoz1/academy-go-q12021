@@ -1,12 +1,13 @@
 package main
 
 import (
+	"log"
+	"net/http"
+
 	"Users/francisco.zamudio/projects/academy-go-q12021/controller"
 	"Users/francisco.zamudio/projects/academy-go-q12021/repository"
 	"Users/francisco.zamudio/projects/academy-go-q12021/router"
 	"Users/francisco.zamudio/projects/academy-go-q12021/service"
-	"log"
-	"net/http"
 )
 
 func main() {
